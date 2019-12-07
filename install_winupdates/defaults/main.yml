@@ -1,0 +1,3 @@
+apfw_waittime: '10'
+apfw_ignorehidden: false
+apfw_autoreboot: true

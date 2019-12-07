@@ -1,0 +1,136 @@
+---
+  - name: Check required variables are set for check - mode
+    assert:
+     that: mode  is defined and mode
+     msg: "mode has not been defined or is empty - please set this variable"
+
+  - name: Check required variables are set for check - enddate 
+    assert:
+     that: apfw_enddate  is defined and apfw_enddate 
+     msg: "enddate has not been defined or is empty - please set this variable"
+    when: mode == "datetime"
+
+  - name: Check required variables are set for check - endtime
+    assert:
+     that: apfw_endtime  is defined and apfw_endtime
+     msg: "endtime has not been defined or is empty - please set this variable"
+    when: mode == "datetime"
+
+  - name: Check required variables are set for check - duration
+    assert:
+     that: apfw_duration  is defined and apfw_duration
+     msg: "apfw_duration has not been defined or is empty - please set this variable"
+    when: mode == "duration"
+
+  - name: Copy core PSWindowsupdate module to module location
+    tags: copypswin
+    win_copy:
+      src: files/PSwindowsupdate
+      dest: "{{ default_location_pswindowsupdate }}"
+
+  - name: Calculate date into ISO-8601
+    win_shell: |
+     $datetime = get-date "{{apfw_enddate}} {{apfw_endtime}}" -Format o
+     write-output $datetime
+    when: mode == "datetime" 
+    register: apfw_datetimeformat_timebased
+
+  - name: calculate future end date time in ISO-8601 format
+    win_shell: |
+     $duration = "{{ apfw_duration }}"
+     $date = get-date ((Get-date).addhours($duration)) -Format o
+     Write-output $date
+    when: mode == "duration"
+    register: apfw_datetimeformat_duration
+
+  - name: Create registry entry for patching end date time
+    tags:
+      - enddateRegistry
+    win_regedit:
+      path: HKLM:\Software\APFWPatching
+      name: enddatetime
+      data: "{{ apfw_datetimeformat_duration.stdout }}"
+      type: string
+      state: present
+    when: mode == "duration"
+  
+  - name: Create registry entry for patching end date time
+    tags:
+      - enddateRegistry
+    win_regedit:
+      path: HKLM:\Software\APFWPatching
+      name: enddatetime
+      data: "{{ apfw_datetimeformat_timebased.stdout }}"
+      type: string
+      state: present
+    when: mode == "datetime"
+
+  - name: Create registry entry for ignore hidden patches
+    tags:
+      - ignorehidden
+    win_regedit:
+      path: HKLM:\Software\APFWPatching
+      name: ignorehidden
+      data: "{{ apfw_ignorehidden }}"
+      type: string
+      state: present
+  
+  - name: Create entry for autoreboot
+    tags:
+      - autoreboot
+    win_regedit:
+      path: HKLM:\Software\APFWPatching
+      name: autoreboot
+      data: "{{ apfw_autoreboot }}"
+      type: string
+      state: present
+
+  - name: Create registry entry for patching wait time
+    tags:
+      - waittimeRegistry
+    win_regedit:
+      path: HKLM:\Software\APFWPatching
+      name: waittime
+      data: "{{ apfw_waittime }}"
+      type: string
+      state: present
+
+  - name: Copy Patch Monitoring file for the Monitor_Patch scheduled task to windows temp directory
+    tags:
+      - copyipm
+    win_copy:
+      src: files/PatchMonitoring.ps1
+      dest: c:\windows\temp\PatchMonitoring.ps1
+  
+  - name: Copy Install Patch file for the Install_Patch scheduled task to windows temp directory
+    tags:
+      - copyipm
+    win_copy:
+      src: files/Installpatch.ps1
+      dest: c:\windows\temp\Installpatch.ps1
+
+
+  - name: Create schedule task - Install Patch 
+    tags:
+      - schtsk_ip
+    win_apfw_scheduledtask:
+      name: Install_Patch
+      state: present 
+      
+    
+  - name: Create schedule task - Monitor Patch
+    tags:
+      - monitor_patch
+    win_apfw_scheduledtask:
+      name: Monitor_Patch
+      state: present
+
+  - name: Run Scheduled task - Install_Patch
+    tags: runschtask_ip
+    win_shell: schtasks /run /tn Install_Patch
+
+  - name: Run Scheduled task - Monitor_Patch
+    tags:
+      - runschtask_mp
+    win_shell: schtasks /run /tn Monitor_Patch
+  

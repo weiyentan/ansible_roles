@@ -1,0 +1,13 @@
+---
+  - name: Remove Patch Status file
+    win_automatedpatchingcleanup: 
+  
+  - name: remove scheduled task Install_Patch
+    win_apfw_scheduledtask:
+      name: Install_Patch
+      state: absent
+  
+  - name: remove schedule task  Monitor_Patch
+    win_apfw_scheduledtask:
+      name: Monitor_Patch
+      state: absent
