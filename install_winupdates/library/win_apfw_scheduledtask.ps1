@@ -168,7 +168,7 @@ if ($diff_mode)
 {
 	$result.diff = @{ }
 }
-$evaltask = Get-Schtask -computername $env:COMPUTERNAME -taskname $name
+$evaltask = Get-Schtask -computername $env:COMPUTERNAME -taskname $name -erroraction SilentlyContinue
 
 if ($name -eq "Install_Patch")
 {
