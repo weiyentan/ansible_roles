@@ -34,6 +34,7 @@ if ($testfile)
 		$result.changed = $false
 		$result.Patchstatus = $xml.Patchingprogress
 		$result.patchesremaining = $xml.patchesremaining
+		$result.daterun = $xml.daterun
 		Exit-Json -obj $result
 	}elseif ($xml.PatchingProgress -eq 'failed')
 	{
