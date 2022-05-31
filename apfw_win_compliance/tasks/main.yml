@@ -1,5 +1,6 @@
 ---
-  - name: Example of Role 
-    win_example:
-      parameter1: "{{ example var }}"
-      parameter2: true
+  - pause: 
+      minutes: "{{ apfw_minwait }}"
+  
+  - name: Patching Status
+    win_apfwcompliance:
